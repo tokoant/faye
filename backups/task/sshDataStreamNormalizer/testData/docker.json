@@ -1,0 +1,14 @@
+[
+  {
+		"hex": "53746f7070696e672031305f617265735f31202e2e2e200d0a",
+		"text": "Stopping 10_ares_1 ... \r\n"
+	},
+	{
+		"hex": "1b5b31411b5b324b0d53746f7070696e672031305f617265735f31202e2e2e201b5b33326d646f6e651b5b306d0d1b5b3142",
+		"text": "\u001b[1A\u001b[2K\rStopping 10_ares_1 ... \u001b[32mdone\u001b[0m\r\u001b[1B"
+	},
+	{
+		"hex": "52656d6f76696e672031305f617265735f31202e2e2e200d0a",
+		"text": "Removing 10_ares_1 ... \r\n"
+	}
+]
