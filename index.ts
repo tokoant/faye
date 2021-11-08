@@ -1,5 +1,5 @@
 import express from 'express';
-import { runShellScript, checkShellScriptAvailability } from './src/middlewares/shellScript';
+import { runShellScript, checkShellScriptAvailability, streamLog } from './src/middlewares/shellScript';
 import { prepareTask, getAllRunningTask, getTaskById, deleteTaskById } from './src/middlewares/task';
 import { responseWithPayload, handleError } from './src/middlewares/generic';
 import fayeState from './src/state';
@@ -39,10 +39,9 @@ const initFaye = async () => {
     handleError
   );
 
-  app.get('/script/log/:taskId', (_req, res)=>{
-
-    res.json({ok: 'log ok'});
-  });
+  app.get('/script/log/:taskId',
+    streamLog,
+  );
 
   app.delete('/script/kill/:taskId', (_req, res)=>{
 

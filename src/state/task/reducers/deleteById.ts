@@ -2,6 +2,7 @@ import { TaskState } from '../index';
 import fs from 'fs';
 
 const STATE_FILE_PATH = '/Users/antoni.xu/faye/records/tasks.rec';
+const TASK_LOG_PATH  = '/Users/antoni.xu/faye/records/task-logs';
 const promiseFs = fs.promises;
 
 const deleteById = async (taskId: number) => {
@@ -16,7 +17,9 @@ const deleteById = async (taskId: number) => {
   // delete task from queue
   Task.queue.splice(taskIndex, 1);
 
-  // TODO: delete log file
+  // delete log file
+  const filename = `run-shell-script-${taskId}.log`;
+  await promiseFs.unlink(`${TASK_LOG_PATH}/${filename}`)
 
   isDeleted = true;
 

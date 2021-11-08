@@ -13,7 +13,7 @@ const initialize = async () => {
   const taskFileBuffer = await fsPromise.readFile(STATE_FILE_PATH);
   const restoreableTasks = JSON.parse(taskFileBuffer.toString())
 
-  if (restoreableTasks.length > 0){
+  if (restoreableTasks.length > 0) {
     global.faye = { Task };
     global.faye.Task.queue = restoreableTasks;
   }
