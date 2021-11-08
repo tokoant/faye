@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { buildValidationErrorParams } from '../utils/error';
 import fs from 'fs';
 import SSH2Promise from 'ssh2-promise';
+import tasks from '../tasks'
 
 const promiseFs = fs.promises;
 const SCRIPT_PATH = '/Users/antoni.xu/faye/scripts';
@@ -9,7 +10,9 @@ const TASK_LOG_PATH  = '/Users/antoni.xu/faye/records/task-logs';
 const TARGET_USERNAME = 'antoni.xu';
 const TARGET_PRIVATE_KEY_PATH = '/Users/antoni.xu/.ssh/id_ed25519';
 
-const taskSockets:{ [key: string]: any; } = {};
+// const taskSockets:{ [key: string]: any; } = {};
+// const taskResponses:{ [key: string]: any; } = {};
+
 
 const buildShellParams = (scriptParams:{ [key: string]: string }):string => {
   const paramsArr:string[] = [];
@@ -45,12 +48,26 @@ export const runShellScript = async ( req:Request, _res:Response, next:NextFunct
 
   try {
     const socket = await ssh.shell();
+    const logFileStream = fs.createWriteStream(`/log/taskId`);
+
+    socket.on('data', (data: Buffer) => {
+      logFileStream.write(data);
+      if (tasks[taskId]?.resSocket) {
+        tasks[taskId].resSocket.write(data);
+      }
+    });
+
+    socket.on('end', (data: Buffer) => {
+      logFileStream.end();
+      if (tasks[taskId]?.resSocket) {
+        tasks[taskId].resSocket.end();
+      }
+    });
+    
     socket.write(buildShellParams(scriptParams));
     socket.write(` sh ${SCRIPT_PATH}/${filename}`);
     socket.write('\n');
-    socket.on('data', (data:Buffer) => {
-      writeLogToFile({ taskId, data });
-    });
+   
     taskSockets[taskId.toString()] = socket;
   }catch(err){
     console.log(err);
@@ -80,20 +97,19 @@ export const checkShellScriptAvailability = async ( req:Request, _res:Response, 
 }
 
 export const streamLog = async ( req:Request, res:Response, _next:NextFunction ) => {
-
+  taskResponses[taskId] = res;
   const { taskId } = req.params;
   let socketIntervalCheck: any;
   let anySocketConnection:boolean = false;
-
+  
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
 
-  const checkSocketConnection = () => {
     const socket = taskSockets[taskId];
-    if (socket){
+    if (socket) {
       console.log(socket, "anySocket")
       socket.on('data', (data:Buffer) => {
         res.write("data: " + data.toString() + "\n\n");
@@ -101,24 +117,28 @@ export const streamLog = async ( req:Request, res:Response, _next:NextFunction )
       });
       anySocketConnection = true;
     }
-  };
-
-  if (!anySocketConnection){
-    socketIntervalCheck = setInterval(()=>{
-      if (anySocketConnection){
-        clearInterval(socketIntervalCheck);
-      }else{
-        checkSocketConnection();
-      }
-    }, 2000);
-  }
-  
 }
 
 interface WriteLogToFileParams {
   taskId: string,
   data: Buffer,
 }
+
+
+
+const getWriteHandler = (taskId) => {
+
+  const stream = fs.getWriteStream('/logs/taskId')
+  return (data)=>{
+    stream.write(data)
+  }
+}
+
+getWriteHandler(taskId)
+
+
+
+
 const writeLogToFile = async (params:WriteLogToFileParams) => {
 
   /* 

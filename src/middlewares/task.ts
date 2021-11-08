@@ -1,29 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
 import { buildValidationErrorParams } from '../utils/error';
+import tasks from '../tasks'
 
 export const prepareTask = async ( req:Request, res:Response, next:NextFunction ) => {
 
   // validate required params
-  const Task = global.faye?.Task;
+  // const Task = global.faye?.Task;
   const taskId = req.params.taskId;
   const options = req.body.scriptParams || {};
 
-  if (!Task) next(buildValidationErrorParams('Faye is not ready to accept Task yet'));
+  // if (!Task) next(buildValidationErrorParams('Faye is not ready to accept Task yet'));
   if (!taskId) next(buildValidationErrorParams('need to provide taskId'));
 
   // make sure no same task with given taskId
-  let task = Task.findById(taskId);
+  // let task = Task.findById(taskId);
 
-  if (task) next(buildValidationErrorParams(`already have running task with id ${taskId}`));
-  
-  // create a task 
-  try {
-    if (!task){
-      task = await Task.createTask({ taskId, options });
-    }
-  }catch(err){
-    next(err);
+  if (tasks[taskId]) {next(buildValidationErrorParams(`already have running task with id ${taskId}`));}
+  else {
+    tasks[taskId] = {
+      id: params.taskId,
+      started: (new Date()).getTime(),
+      options: params.options,
+      logPath: '',
+    };
   }
+  
+  // // create a task 
+  // try {
+  //   if (!task){
+  //     task = await Task.createTask({ taskId, options });
+  //   }
+  // }catch(err){
+  //   next(err);
+  // }
 
   res.locals.payload = task;
   next();
