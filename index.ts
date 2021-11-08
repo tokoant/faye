@@ -1,6 +1,6 @@
 import express from 'express';
-import { runShellScript } from './src/middlewares/shellScript';
-import { prepareTask, getAllRunningTask } from './src/middlewares/task';
+import { runShellScript, checkShellScriptAvailability } from './src/middlewares/shellScript';
+import { prepareTask, getAllRunningTask, getTaskById, deleteTaskById } from './src/middlewares/task';
 import { responseWithPayload, handleError } from './src/middlewares/generic';
 import fayeState from './src/state';
 
@@ -8,44 +8,50 @@ const bodyParser = require('body-parser');
 const app = express();
 const port = 3000;
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(fayeState.initialize());
+const initFaye = async () => {
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: false }));
+  app.use(await fayeState.initialize());
 
-app.post('/script/run/:taskId', 
-  // checkShellScriptAvailability,
-  prepareTask,
-  runShellScript,
-  responseWithPayload,
-  handleError
-);
+  app.post('/script/run/:taskId', 
+    checkShellScriptAvailability,
+    prepareTask,
+    runShellScript,
+    responseWithPayload,
+    handleError
+  );
 
-app.get('/script/list',
-  getAllRunningTask,
-  responseWithPayload,
-  handleError
-);
+  app.get('/script/list',
+    getAllRunningTask,
+    responseWithPayload,
+    handleError
+  );
 
-app.get('/script/get/:taskId', (_req, res)=>{
+  app.get('/script/get/:taskId',
+    getTaskById,
+    responseWithPayload,
+    handleError
+  );
 
-  res.json({ok: 'get ok'});
-});
+  app.delete('/script/delete/:taskId',
+    deleteTaskById,
+    responseWithPayload,
+    handleError
+  );
 
-app.delete('/script/delete/:taskId', (_req, res)=>{
+  app.get('/script/log/:taskId', (_req, res)=>{
 
-  res.json({ok: 'delete ok'});
-});
+    res.json({ok: 'log ok'});
+  });
 
-app.get('/script/log/:taskId', (_req, res)=>{
+  app.delete('/script/kill/:taskId', (_req, res)=>{
 
-  res.json({ok: 'log ok'});
-});
+    res.json({ok: 'kill ok'});
+  });
 
-app.delete('/script/kill/:taskId', (_req, res)=>{
+  app.listen(port, () => {
+    console.log(`Faye listening at http://localhost:${port}`);
+  });
+}
 
-  res.json({ok: 'kill ok'});
-});
-
-app.listen(port, () => {
-  console.log(`Faye listening at http://localhost:${port}`);
-});
+initFaye();

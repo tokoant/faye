@@ -2,15 +2,26 @@ import { Request, Response, NextFunction } from 'express';
 
 interface ErrorObject {
   type: string;
+  message: string;
   error: {
     reason: string;
   };
 }
 
 export const handleError = (err:ErrorObject, _req:Request, res:Response, _next: NextFunction ) => {
-  const status = (err.type === 'validation') ? 400 : 500;
+  let status = 500;
+  let error = err.error;
+
+  if (err.type === 'validation') {
+    status = 400;
+  }else{
+    error = {
+      reason: err.message
+    };
+  }
+
   res.status(status);
-  res.json({error: err.error});
+  res.json({error});
 }
 
 export const responseWithPayload = ( _req:Request, res:Response, next: NextFunction ) => {
