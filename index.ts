@@ -2,7 +2,6 @@ import express from 'express';
 import { runShellScript, checkShellScriptAvailability, streamLog } from './src/middlewares/shellScript';
 import { prepareTask, getAllRunningTask, getTaskById, deleteTaskById } from './src/middlewares/task';
 import { responseWithPayload, handleError } from './src/middlewares/generic';
-import fayeState from './src/state';
 
 const bodyParser = require('body-parser');
 const app = express();
@@ -11,7 +10,6 @@ const port = 3000;
 const initFaye = async () => {
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
-  app.use(await fayeState.initialize());
 
   app.post('/script/run/:taskId', 
     checkShellScriptAvailability,

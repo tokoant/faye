@@ -9,7 +9,7 @@ const TASK_LOG_PATH  = '/Users/antoni.xu/faye/records/task-logs';
 const TARGET_USERNAME = 'antoni.xu';
 const TARGET_PRIVATE_KEY_PATH = '/Users/antoni.xu/.ssh/id_ed25519';
 
-const taskSockets:{ [key: string]: any; } = {};
+const taskSockets:{ [key: string]: any } = {};
 
 const buildShellParams = (scriptParams:{ [key: string]: string }):string => {
   const paramsArr:string[] = [];
@@ -45,13 +45,26 @@ export const runShellScript = async ( req:Request, _res:Response, next:NextFunct
 
   try {
     const socket = await ssh.shell();
-    socket.write(buildShellParams(scriptParams));
-    socket.write(` sh ${SCRIPT_PATH}/${filename}`);
-    socket.write('\n');
+    const logName = `run-shell-script-${taskId}.log`;
+    const logFileStream = fs.createWriteStream(`${TASK_LOG_PATH}/${logName}`);
+
     socket.on('data', (data:Buffer) => {
-      writeLogToFile({ taskId, data });
+      logFileStream.write(data);
+      if (taskSockets[taskId]) {
+        taskSockets[taskId].write(data);
+      }
     });
-    taskSockets[taskId.toString()] = socket;
+
+    socket.on('end', () => {
+      logFileStream.end();
+      if (taskSockets[taskId]) {
+        taskSockets[taskId].end();
+      }
+    });
+
+    socket.write(buildShellParams(scriptParams));
+    socket.write(` sh ${SCRIPT_PATH}/${filename} \n`);
+    socket.write('exit \n');
   }catch(err){
     console.log(err);
     next(err);
@@ -75,72 +88,19 @@ export const checkShellScriptAvailability = async ( req:Request, _res:Response, 
   if (!shellFile){
     next(buildValidationErrorParams('no shell script found with that name'));
   }
-  
+
   next();
 }
 
 export const streamLog = async ( req:Request, res:Response, _next:NextFunction ) => {
 
   const { taskId } = req.params;
-  let socketIntervalCheck: any;
-  let anySocketConnection:boolean = false;
+  
+  taskSockets[taskId] = res;
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
-
-  const checkSocketConnection = () => {
-    const socket = taskSockets[taskId];
-    if (socket){
-      console.log(socket, "anySocket")
-      socket.on('data', (data:Buffer) => {
-        res.write("data: " + data.toString() + "\n\n");
-        //TODO: check if already on the on of shell process, if yes than the api response
-      });
-      anySocketConnection = true;
-    }
-  };
-
-  if (!anySocketConnection){
-    socketIntervalCheck = setInterval(()=>{
-      if (anySocketConnection){
-        clearInterval(socketIntervalCheck);
-      }else{
-        checkSocketConnection();
-      }
-    }, 2000);
-  }
-  
-}
-
-interface WriteLogToFileParams {
-  taskId: string,
-  data: Buffer,
-}
-const writeLogToFile = async (params:WriteLogToFileParams) => {
-
-  /* 
-    NB: task log naming convention
-    run-shell-script-[taskId].log
-  */
-  const { taskId, data } = params;
-  const filename = `run-shell-script-${taskId}.log`;
-
-  let anyFile = false;
-  try {
-    await promiseFs.open(`${TASK_LOG_PATH}/${filename}`, 'r');
-    anyFile = true;
-  }catch(err){
-    console.log(err);
-  }
-
-  if (!anyFile){
-    // if no log file related to current task, create the file
-    await promiseFs.writeFile(`${TASK_LOG_PATH}/${filename}`, data.toString());
-  }else{
-    // if there is a log file append current data to the log
-    await promiseFs.appendFile(`${TASK_LOG_PATH}/${filename}`, data.toString());
-  }
 }
