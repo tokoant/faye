@@ -5,7 +5,7 @@ import Tasks, { TaskState } from '../state/tasks';
 import fs from 'fs';
 
 const promiseFs = fs.promises;
-const TASK_LOG_PATH  = '/Users/antoni.xu/faye/records/task-logs';
+const TASK_LOG_PATH  = './records/task-logs';
 
 export const prepareTask = async ( req:Request, res:Response, next:NextFunction ) => {
 
