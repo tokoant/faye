@@ -6,7 +6,6 @@ export interface TaskState {
   options: Record<string, unknown>; // params for running the shell script
   started: number, // record timestamp when the task is created
   logPath: string, // task log file path
-  errorLogPath: string;
   shellRes?: Response // express response to stream write shell log 
   // sshClient:
 }

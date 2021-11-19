@@ -22,16 +22,13 @@ export const prepareTask = async ( req:Request, res:Response, next:NextFunction 
   // create a task 
   // const taskId = new mongoose.Types.ObjectId();
   const logName = `run-shell-script-${taskId}.log`;
-  const errorLogName = `run-shell-script-${taskId}.error.log`;
   const logPath = `${TASK_LOG_PATH}/${logName}`;
-  const errorLogPath = `${TASK_LOG_PATH}/${errorLogName}`;
 
   task = {
     id: taskId,
     started: (new Date()).getTime(),
     options,
     logPath,
-    errorLogPath,
   };
   Tasks.push(task);
 
