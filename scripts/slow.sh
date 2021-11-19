@@ -1,4 +1,4 @@
-echo "01"; echo "01" > /root/docker/slow.txt ; sleep 0.2;
+echo "01"; echo "01" >> /root/docker/slow.txt ; sleep 0.2;
 echo "02"; echo "02" >> /root/docker/slow.txt ; sleep 0.2;
 echo "03"; echo "03" >> /root/docker/slow.txt ; sleep 0.2;
 echo "04"; echo "04" >> /root/docker/slow.txt ; sleep 0.2;

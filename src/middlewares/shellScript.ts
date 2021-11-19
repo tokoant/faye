@@ -5,28 +5,15 @@ import SSH2Promise from 'ssh2-promise';
 
 const promiseFs = fs.promises;
 const SCRIPT_PATH = '/Users/antoni.xu/faye/scripts';
-const TASK_LOG_PATH  = '/Users/antoni.xu/faye/records/task-logs';
 const TARGET_USERNAME = 'antoni.xu';
 const TARGET_PRIVATE_KEY_PATH = '/Users/antoni.xu/.ssh/id_ed25519';
 
-const taskSockets:{ [key: string]: any } = {};
+const taskResponseSockets:{ [key: string]: Response } = {};
 
-const buildShellParams = (scriptParams:{ [key: string]: string }):string => {
-  const paramsArr:string[] = [];
-  const keys = Object.keys(scriptParams);
-
-  for (let index = 0; index < keys.length; index++) {
-    const key = keys[index];
-    paramsArr.push(`${key}=${scriptParams[key]}`);
-  }
-
-  return paramsArr.join(' ');
-};
-
-export const runShellScript = async ( req:Request, _res:Response, next:NextFunction ) => {
+export const runShellScript = async ( req:Request, res:Response, next:NextFunction ) => {
   
-  const { filename, scriptParams, target } = req.body;
-  const { taskId } = req.params;
+  const { script, target } = req.body;
+  const { taskId, logPath, errorLogPath } = res.locals.payload;
 
   const sshconfig = {
     host: target,
@@ -34,37 +21,42 @@ export const runShellScript = async ( req:Request, _res:Response, next:NextFunct
     identity: TARGET_PRIVATE_KEY_PATH,
   }
   
-  const ssh = new SSH2Promise(sshconfig);
+  const sshClient = new SSH2Promise(sshconfig);
 
   try {
-    await ssh.connect();
+    await sshClient.connect();
   }catch(err){
     console.log(err);
     next(err);
   }
 
   try {
-    const socket = await ssh.shell();
-    const logName = `run-shell-script-${taskId}.log`;
-    const logFileStream = fs.createWriteStream(`${TASK_LOG_PATH}/${logName}`);
+
+    const socket = await sshClient.spawn(script);
+    const logFileStream = fs.createWriteStream(logPath);
 
     socket.on('data', (data:Buffer) => {
+      // write to log file
       logFileStream.write(data);
-      if (taskSockets[taskId]) {
-        taskSockets[taskId].write(data);
+
+      // write to task response socket if available
+      const strData = data.toString();
+      if (taskResponseSockets[taskId] && (strData !== '')) {
+        const payload = `data:${strData}\n`;
+        taskResponseSockets[taskId].write(payload);
       }
     });
-
+    socket.stderr.on('data', (data:Buffer)=>{
+      // write it in separate error log file
+      const bufferErrorMarker = Buffer.from("Script Execution Error: \n", "utf-8");
+      const errorLogFileStream = fs.createWriteStream(errorLogPath);
+      errorLogFileStream.write(bufferErrorMarker);
+      errorLogFileStream.write(data);
+      errorLogFileStream.end();
+    });
     socket.on('end', () => {
       logFileStream.end();
-      if (taskSockets[taskId]) {
-        taskSockets[taskId].end();
-      }
     });
-
-    socket.write(buildShellParams(scriptParams));
-    socket.write(` sh ${SCRIPT_PATH}/${filename} \n`);
-    socket.write('exit \n');
   }catch(err){
     console.log(err);
     next(err);
@@ -96,7 +88,7 @@ export const streamLog = async ( req:Request, res:Response, _next:NextFunction )
 
   const { taskId } = req.params;
   
-  taskSockets[taskId] = res;
+  taskResponseSockets[taskId] = res;
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',

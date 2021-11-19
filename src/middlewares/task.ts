@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { buildValidationErrorParams } from '../utils/error';
 import Tasks, { TaskState } from '../state/tasks';
+// import mongoose from 'mongoose';
 import fs from 'fs';
 
 const promiseFs = fs.promises;
@@ -9,32 +10,30 @@ const TASK_LOG_PATH  = '/Users/antoni.xu/faye/records/task-logs';
 export const prepareTask = async ( req:Request, res:Response, next:NextFunction ) => {
 
   // validate required params
-  const taskId = Number(req.params.taskId);
-  const options = req.body.scriptParams || {};
+  const taskId = req.params.taskId;
+  const options = req.body || {};
   if (!taskId) next(buildValidationErrorParams('need to provide taskId'));
 
-  // make sure no same task with given taskId
+  // make sure no same task with given taskId,
+  // TODO: update the check mechanic
   let task = Tasks.find((n: TaskState)=> n.id === taskId);
-
   if (task) next(buildValidationErrorParams(`already have running task with id ${taskId}`));
   
   // create a task 
+  // const taskId = new mongoose.Types.ObjectId();
   const logName = `run-shell-script-${taskId}.log`;
+  const errorLogName = `run-shell-script-${taskId}.error.log`;
   const logPath = `${TASK_LOG_PATH}/${logName}`;
+  const errorLogPath = `${TASK_LOG_PATH}/${errorLogName}`;
 
-  try {
-    if (!task){
-      task = {
-        id: taskId,
-        started: (new Date()).getTime(),
-        options,
-        logPath,
-      };
-      Tasks.push(task);
-    }
-  }catch(err){
-    next(err);
-  }
+  task = {
+    id: taskId,
+    started: (new Date()).getTime(),
+    options,
+    logPath,
+    errorLogPath,
+  };
+  Tasks.push(task);
 
   res.locals.payload = task;
   next();
@@ -50,11 +49,11 @@ export const getAllRunningTask = async ( _req:Request, res:Response, next:NextFu
 export const getTaskById = async (  req:Request, res:Response, next:NextFunction ) => {
 
   // validate required params
-  const taskId = Number(req.params.taskId);
+  const taskId = req.params.taskId;
 
   if (!taskId) next(buildValidationErrorParams('need to provide taskId'));
 
-  const task = Tasks.find(n => n.id === taskId);
+  const task = Tasks.find(n => n.id.toString() === taskId);
 
   if (!task) next(buildValidationErrorParams('there no running task with that id'));
 
@@ -65,7 +64,7 @@ export const getTaskById = async (  req:Request, res:Response, next:NextFunction
 export const deleteTaskById = async (  req:Request, res:Response, next:NextFunction ) => {
 
   // validate required params
-  const taskId = Number(req.params.taskId);
+  const taskId = req.params.taskId;
 
   if (!taskId) next(buildValidationErrorParams('need to provide taskId'));
 
@@ -73,7 +72,7 @@ export const deleteTaskById = async (  req:Request, res:Response, next:NextFunct
   try {
 
     // find task to be delete, throw error if no task found
-    const taskIndex:number = Tasks.findIndex((n:TaskState) => n.id === taskId);
+    const taskIndex:number = Tasks.findIndex((n:TaskState) => n.id.toString() === taskId);
   
     if (taskIndex === -1) throw new Error('no task with that id in task queue');
   
@@ -91,3 +90,8 @@ export const deleteTaskById = async (  req:Request, res:Response, next:NextFunct
   res.locals.payload = { result: 'successfully delete the task' };
   next();
 }
+
+
+// kill implementation
+// - ssh client disconnect
+// - clean up logFileStream
