@@ -69,6 +69,7 @@
     "css-loader": "3.5.2",
     "d3": "5.15.1",
     "debug": "4.1.1",
+    "eventsource": "^1.1.0",
     "execa": "^5.1.1",
     "express": "4.17.1",
     "express-history-api-fallback": "2.2.1",
@@ -140,6 +141,7 @@
     "yaml": "1.7.2"
   },
   "devDependencies": {
+    "@types/eventsource": "^1.1.7",
     "@typescript-eslint/eslint-plugin": "^3.0.0",
     "@typescript-eslint/parser": "^3.0.0",
     "babel-eslint": "^10.1.0",
@@ -157,6 +159,7 @@
   },
   "scripts": {
     "dev": "nodemon --exec ts-node --files index.ts",
+    "devKratos": "nodemon --exec ts-node --files kratos/index.ts",
     "start": "npx ts-node .",
     "test": "jest",
     "build": "webpack"

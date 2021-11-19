@@ -40,10 +40,7 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
       logFileStream.write(logBuffer);
 
       // write to task response socket if available
-      const strData = data.toString();
-     
       if (taskResponseSockets[taskId]) {
-
         taskResponseSockets[taskId].write(logObjectString);
       }
     });
