@@ -51,7 +51,7 @@ export const getRunningScriptLiveLog = async ({ taskId }: LogParamsType) => {
     const SSE = new EventSource(resourceURL);
 
     SSE.onerror = (err:MessageEvent) => {
-        if (err.data === '') console.log(`connection stream for ${taskId} have been closed`);
+        if (!err.data) console.log(`connection stream for ${taskId} have been closed`);
         SSE.close();
     };
 
