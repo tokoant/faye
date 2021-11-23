@@ -1,7 +1,10 @@
 import express from 'express';
+import dotenv from 'dotenv';
 import { runShellScript, streamLog } from './src/middlewares/shellScript';
 import { prepareTask, getAllRunningTask, getTaskById, deleteTaskById } from './src/middlewares/task';
 import { responseWithPayload, handleError } from './src/middlewares/generic';
+
+dotenv.config();
 
 const bodyParser = require('body-parser');
 const app = express();

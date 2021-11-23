@@ -6,14 +6,14 @@ import mongoose from 'mongoose';
 const promiseFs = fs.promises;
 
 export const runSlowScript = async (_req: Request, res: Response) => {
-    const slowScript = (await promiseFs.readFile(`${__dirname}/slow.sh`)).toString();
+    const slowScript = (await promiseFs.readFile(`${__dirname}/scripts/slow.sh`)).toString();
 
     const taskId = new mongoose.Types.ObjectId();
 
     const SSEhandler = await getRunningScriptLiveLog({ taskId });
 
     SSEhandler.onmessage = (event) => {
-        console.log('SSE data:',event.data,);
+        console.log('SSE data:', event.data);
     };
 
     const params = {
@@ -24,7 +24,6 @@ export const runSlowScript = async (_req: Request, res: Response) => {
 
     await runShellScript(params);
 
-    // console.log(data);
     res.json({
         params,
     });

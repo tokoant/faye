@@ -2,9 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import SSH2Promise from 'ssh2-promise';
 
-const TARGET_USERNAME = 'y';
-const TARGET_PRIVATE_KEY_PATH = `/Users/y/.ssh/mini2021`;
-
 const taskResponseSockets:{ [key: string]: Response } = {};
 
 export const runShellScript = async ( req:Request, res:Response, next:NextFunction ) => {
@@ -14,8 +11,8 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
 
   const sshconfig = {
     host: target,
-    username: TARGET_USERNAME,
-    identity: TARGET_PRIVATE_KEY_PATH,
+    username: process.env.SSH_TARGET_USERNAME,
+    identity: process.env.SSH_TARGET_PRIVATE_KEY_PATH,
   }
   
   const sshClient = new SSH2Promise(sshconfig);
@@ -35,22 +32,22 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
     socket.on('data', (data:Buffer) => {
       // write to log file
       const logObjectString = JSON.stringify({timestamp: (new Date).getTime(), type: 'stdout', line: data.toString() });
-      const logBuffer = Buffer.from(`${logObjectString} \n`, 'utf-8');
+      const logBuffer = Buffer.from(`${logObjectString}`, 'utf-8');
 
       logFileStream.write(logBuffer);
 
       // write to task response socket if available
       if (taskResponseSockets[taskId]) {
-        taskResponseSockets[taskId].write(logObjectString);
+        taskResponseSockets[taskId].write(`data:${logObjectString}\n\n`);
       }
     });
     socket.stderr.on('data', (data:Buffer)=>{
-      const logObjectString = JSON.stringify({ timestamp: (new Date).getTime(), type: 'stdout', line: data.toString() });
-      const logBuffer = Buffer.from(`${logObjectString} \n`, 'utf-8');
+      const logObjectString = JSON.stringify({ timestamp: (new Date).getTime(), type: 'stderr', line: data.toString() });
+      const logBuffer = Buffer.from(`${logObjectString}`, 'utf-8');
 
       logFileStream.write(logBuffer);
       if (taskResponseSockets[taskId]) {
-        taskResponseSockets[taskId].write(logObjectString);
+        taskResponseSockets[taskId].write(`data:${logObjectString}\n\n`);
       }
     });
     socket.on('end', () => {
