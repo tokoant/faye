@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import SSH2Promise from 'ssh2-promise';
+import Tasks from '../state/tasks';
 
 const taskResponseSockets:{ [key: string]: Response } = {};
 
@@ -38,8 +39,14 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
 
       // write to task response socket if available
       if (taskResponseSockets[taskId]) {
+        taskResponseSockets[taskId].write('event:shell-log\n');
         taskResponseSockets[taskId].write(`data:${logObjectString}\n\n`);
       }
+
+      // update task status to "running"
+      const taskIdIndex = Tasks.findIndex(({id}) => id === taskId);
+      if (taskIdIndex !== -1) Tasks[taskIdIndex].status = 'running';
+      console.log(`running task with id ${taskId}`);
     });
     socket.stderr.on('data', (data:Buffer)=>{
       const logObjectString = JSON.stringify({ timestamp: (new Date).getTime(), type: 'stderr', line: data.toString() });
@@ -47,12 +54,27 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
 
       logFileStream.write(logBuffer);
       if (taskResponseSockets[taskId]) {
+        taskResponseSockets[taskId].write('event:shell-log\n');
         taskResponseSockets[taskId].write(`data:${logObjectString}\n\n`);
       }
+      
+      // update task status to "running"
+      const taskIdIndex = Tasks.findIndex(({id}) => id === taskId);
+      if (taskIdIndex !== -1) Tasks[taskIdIndex].status = 'running';
+      console.log(`running task with id ${taskId}`);
     });
     socket.on('end', () => {
       logFileStream.end();
-      taskResponseSockets[taskId].end();
+      if (taskResponseSockets[taskId]){
+        taskResponseSockets[taskId].write('event:shell-exec-end\n');
+        taskResponseSockets[taskId].write(`data:\n\n`);
+        taskResponseSockets[taskId].end();
+      }
+
+      // update task status to "ended"
+      const taskIdIndex = Tasks.findIndex(({id}) => id === taskId);
+      if (taskIdIndex !== -1) Tasks[taskIdIndex].status = 'ended';
+      console.log(`finish task with id ${taskId}`);
     });
   }catch(err){
     console.log(err);

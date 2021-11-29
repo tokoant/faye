@@ -159,8 +159,10 @@
     "prettier": "^2.0.5"
   },
   "scripts": {
-    "dev": "nodemon --exec ts-node --files index.ts",
-    "devKratos": "nodemon --exec ts-node --files kratos/index.ts",
+    "dev": "npx ts-node --files index.ts",
+    "devKratos": "npx ts-node --files kratos/index.ts",
+    "dev:mon": "nodemon --exec ts-node --files index.ts",
+    "devKratos:mon": "nodemon --exec ts-node --files kratos/index.ts",
     "start": "npx ts-node .",
     "test": "jest",
     "build": "webpack"

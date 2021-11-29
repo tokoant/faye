@@ -33,10 +33,10 @@ export const listRunningScript = async () => {
 };
 
 interface GetParamsType {
-    taskId: mongoose.Types.ObjectId;
+    taskId: string;
 }
-export const getRunnningScript = async ({ taskId }: GetParamsType) => {
-    return await axiosInstance({
+export const getRunnningScript = ({ taskId }: GetParamsType) => {
+    return axiosInstance({
         url: `/get/${taskId}`,
     });
 };

@@ -1,6 +1,6 @@
 import express from 'express';
-import { runScript } from './middlewares/runScript';
-import { getCurrentRunningTasks } from './middlewares/runningTask';
+import { runScript, getScriptLog } from './middlewares/runScript';
+import { getCurrentTasks, getTask } from './middlewares/task';
 import { responseWithPayload, handleError } from '../src/middlewares/generic';
 
 const bodyParser = require('body-parser');
@@ -12,10 +12,16 @@ const initFaye = async () => {
     app.use(bodyParser.urlencoded({ extended: false }));
 
     app.post('/ssh-script/run', runScript, responseWithPayload, handleError);
-    app.get('/ssh-script/running-tasks-state', getCurrentRunningTasks, responseWithPayload, handleError);
+    app.get('/ssh-script/list', getCurrentTasks, responseWithPayload, handleError);
+    app.get('/ssh-script/get/:taskId', getTask, responseWithPayload, handleError);
+    app.get('/ssh-script/log/:taskId', getScriptLog);
 
+    app.delete('/kratos/crash', () => {
+        process.exit();
+    });
+    
     app.listen(port, () => {
-        console.log(`Kratos listening at http://localhost:${port}`);
+        console.log(`Kratos Server listening at http://localhost:${port}`);
     });
 }
 

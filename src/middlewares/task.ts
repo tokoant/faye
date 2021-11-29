@@ -28,6 +28,7 @@ export const prepareTask = async ( req:Request, res:Response, next:NextFunction 
     id: taskId,
     started: (new Date()).getTime(),
     options,
+    status: 'created',
     logPath,
   };
   Tasks.push(task);
