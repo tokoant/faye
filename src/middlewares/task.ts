@@ -89,7 +89,6 @@ export const deleteTaskById = async (  req:Request, res:Response, next:NextFunct
   next();
 }
 
-
 // kill implementation
 // - ssh client disconnect
 // - clean up logFileStream

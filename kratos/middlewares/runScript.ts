@@ -1,8 +1,8 @@
 import { runShellScript, getRunningScriptLiveLog } from '../sshConn';
 import fs from 'fs';
 import { Request, Response, NextFunction } from 'express';
-import { taskStore, Task } from '../state/task';
-import streamResponse from '../state/streamResponse';
+import { taskStore, Task } from '../stores/states/task';
+import streamResponse from '../stores/states/streamResponse';
 import mongoose from 'mongoose';
 
 const promiseFs = fs.promises;
@@ -12,7 +12,6 @@ export const runScript = async (req: Request, res: Response, next: NextFunction)
 
     const taskId = new mongoose.Types.ObjectId();
 
-    
     const SSEhandler = await getRunningScriptLiveLog({ taskId });
     SSEhandler.addEventListener('shell-log', (event)=>{
         if (streamResponse[taskId.toString()]) {
@@ -55,8 +54,8 @@ export const getScriptLog = (req: Request, res: Response) => {
     const { taskId: currentTaskId } = req.params;
     
     // check if task status is ended
-    const tasks:Task[] = taskStore.getState();
-    const task = tasks.find(({ taskId }) => taskId.toString() === currentTaskId);
+    const state:{tasks:Task[]} = taskStore.getState();
+    const task = state.tasks.find(({ taskId }) => taskId.toString() === currentTaskId);
 
     if (task && task.status === 'ended'){
         res.status(200);

@@ -43,7 +43,7 @@ const initFaye = async () => {
   app.get('/script/log/:taskId',
     streamLog,
   );
-
+  
   app.delete('/script/kill/:taskId', (_req, res)=>{
 
     res.json({ok: 'kill ok'});

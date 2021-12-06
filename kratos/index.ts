@@ -1,6 +1,6 @@
 import express from 'express';
 import { runScript, getScriptLog } from './middlewares/runScript';
-import { getCurrentTasks, getTask } from './middlewares/task';
+import { getCurrentTasks, getTask, runDeploy } from './middlewares/task';
 import { responseWithPayload, handleError } from '../src/middlewares/generic';
 
 const bodyParser = require('body-parser');
@@ -15,6 +15,8 @@ const initFaye = async () => {
     app.get('/ssh-script/list', getCurrentTasks, responseWithPayload, handleError);
     app.get('/ssh-script/get/:taskId', getTask, responseWithPayload, handleError);
     app.get('/ssh-script/log/:taskId', getScriptLog);
+
+    app.post('/run-deploy', runDeploy);
 
     app.delete('/kratos/crash', () => {
         process.exit();

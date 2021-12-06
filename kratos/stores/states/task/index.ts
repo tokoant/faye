@@ -1,8 +1,9 @@
-import { createStore, Reducer } from 'redux';
+import { createStore, Reducer, applyMiddleware } from 'redux';
 import mongoose from 'mongoose';
 import fs from 'fs';
-import { getRunnningScript, getRunningScriptLiveLog } from '../../sshConn';
-import streamResponse from '../../state/streamResponse';
+import { getRunnningScript, getRunningScriptLiveLog } from '../../../sshConn';
+import streamResponse from '../streamResponse';
+import promise from 'redux-promise-middleware';
 
 const RUNNING_TASK_PATH  = './records/running-task.state';
 
@@ -24,6 +25,19 @@ export interface Task {
   taskId: mongoose.Types.ObjectId,
   startedAt: string,
   endedAt: string,
+}
+
+export interface PromiseTask {
+  parentId: string,
+  id: string,
+  params: Record<string, number|string>
+  actionType: string,
+  // state: 'started'|'created'|'rejected'|'resolved',
+  // result:
+  // error:
+  // startedAt:
+  // createdAt:
+  // endedAt:
 }
 
 interface SSHConnectionTaskState {
@@ -84,20 +98,24 @@ const _recoverRunningTaskListeners = async (runningTasks:Task[]) => {
   }
 }
 
+interface StateType {
+  tasks: Task[],
+  // promises: PromiseTask[],
+}
 const recoverableState = () => {
-  let savedState:Task[] = [];
+  let savedState:StateType = {tasks: []};
   try {
     const stateFileValue = fs.readFileSync(RUNNING_TASK_PATH);
     savedState = JSON.parse(stateFileValue.toString());
 
     // TODO: sync with faye (for all running task by id) update the state
-    const runningSavedState = savedState.filter(({ status }) => status === 'running');
+    const runningSavedState = savedState.tasks.filter(({ status }) => status === 'running');
     _recoverRunningTaskListeners(runningSavedState);
 
     // TODO: handle edge case where task status is "created"
     
   }catch(err){
-    saveStateToFile([]);
+    saveStateToFile({tasks: []});
     console.log(err);
   }
   return savedState;
@@ -114,24 +132,24 @@ interface ActionType {
     log: Log;
   }
 }
-const reducers:Reducer = (state:Task[], action:ActionType) => {
+const reducers:Reducer = (state:StateType, action:ActionType) => {
 
-  if (!action.payload?.taskId) return [...state];
+  if (!action.payload?.taskId) return { tasks: [...state.tasks] };
   
   const { taskId: currentTaskId } = action.payload;
-  const currentTask = state.find(({ taskId }) => taskId.toString() === currentTaskId.toString());
+  const currentTask = state.tasks.find(({ taskId }) => taskId.toString() === currentTaskId.toString());
   
   switch (action.type) {
     case 'task/create':
-      const addedState = [...state, {
+      const addedState = {tasks: [...state.tasks, {
         ...action.payload,
         status: 'created',
         startedAt: (new Date()).toISOString(),
-      }];
+      }]};
       saveStateToFile(addedState);
       return addedState;
     case 'task/running':
-      const otherThanCurrentRunningTaskState = state.filter(({ taskId }) => taskId.toString() !== currentTaskId.toString());
+      const otherThanCurrentRunningTaskState = state.tasks.filter(({ taskId }) => taskId.toString() !== currentTaskId.toString());
       if (currentTask){
         const currentRunningTask = {
           ...currentTask,
@@ -139,48 +157,55 @@ const reducers:Reducer = (state:Task[], action:ActionType) => {
         }
         if (!currentRunningTask.logs) currentRunningTask.logs = [];
         currentRunningTask.logs.push(action.payload.log);
-        const currentState = [...otherThanCurrentRunningTaskState, currentRunningTask];
+        const currentState = { tasks: [...otherThanCurrentRunningTaskState, currentRunningTask] };
         saveStateToFile(currentState);
         return currentState;
       }
-      return [...state];
+      return { tasks: [...state.tasks] };
     case 'task/rejected':
-      const rejectedState = [...state.filter(({ taskId }) => taskId.toString() !== currentTaskId.toString()), {
+      const rejectedState = {task: [...state.tasks.filter(({ taskId }) => taskId.toString() !== currentTaskId.toString()), {
         ...currentTask,
         status: 'ended',
         isOk: true,
         isError: false,
         endedAt: (new Date()).toISOString(),
-      }];
+      }] };
       saveStateToFile(rejectedState);
       return rejectedState;
     case 'task/resolved':
-      const resolvedState = [...state.filter(({ taskId }) => taskId.toString() !== currentTaskId.toString()), {
+      const resolvedState = {tasks: [...state.tasks.filter(({ taskId }) => taskId.toString() !== currentTaskId.toString()), {
         ...currentTask,
         status: 'ended',
         isOk: true,
         isError: false,
         endedAt: (new Date()).toISOString(),
-      }];
+      }] };
       saveStateToFile(resolvedState);
       return resolvedState;
     case 'task/resolved-with-log':
-      const resolvedWithLogState = [...state.filter(({ taskId }) => taskId.toString() !== currentTaskId.toString()), {
+      const resolvedWithLogState = { tasks: [...state.tasks.filter(({ taskId }) => taskId.toString() !== currentTaskId.toString()), {
         ...currentTask,
         status: 'ended',
         isOk: true,
         isError: false,
         endedAt: (new Date()).toISOString(),
-      }];
+      }] };
       saveStateToFile(resolvedWithLogState);
       return resolvedWithLogState;
     case 'task/remove': 
-      const otherState = [...state.filter(({ taskId }) => taskId.toString() !== currentTaskId.toString())]
+      const otherState = {tasks: [...state.tasks.filter(({ taskId }) => taskId.toString() !== currentTaskId.toString())]}
       saveStateToFile(otherState);
       return otherState;
+    case 'promise/create':
+      console.log(action.payload);
+      return {...state};
     default:
-      return [...state];
+      return {tasks: [...state.tasks]};
   }
 }
 
-export const taskStore = createStore(reducers, recoverableState());
+const composeStoreWithMiddleware = applyMiddleware(
+  promise,
+)(createStore)
+
+export const taskStore = composeStoreWithMiddleware(reducers, recoverableState());
