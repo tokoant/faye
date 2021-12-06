@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { taskStore, Task } from '../stores/states/task';
 import { actionPromiseCreator, runActionsSequentially } from '../utils/promise';
-// import stores from '../stores';
-// import { compose } from 'async';
 
 export const getCurrentTasks = (_req: Request, res: Response, next: NextFunction) => {
   const state:{tasks:Task[]} = taskStore.getState();
