@@ -1,7 +1,7 @@
 import express from 'express';
 import { runScript, getScriptLog } from './middlewares/runScript';
 import { getCurrentTasks, getTask, runDeploy } from './middlewares/task';
-import { runDeploySaga } from './middlewares/promise-saga';
+import { runDeploySaga, getRunDeploySagaLog } from './middlewares/promise-saga';
 import { getStoreState } from './middlewares/general';
 import { responseWithPayload, handleError } from '../src/middlewares/generic';
 
@@ -21,8 +21,9 @@ const initFaye = async () => {
     app.post('/run-deploy', runDeploy);
 
     app.post('/run-deploy-saga', runDeploySaga);
-    app.get('/get-store-state', getStoreState);
+    app.get('/run-deploy-saga/log/:taskId', getRunDeploySagaLog);
 
+    app.get('/get-store-state', getStoreState);
     app.delete('/kratos/crash', () => {
         process.exit();
     });

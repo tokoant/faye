@@ -4,6 +4,7 @@ const STORE_PATH = 'SAGA_PROMISE';
 
 type PROMISE_STATE = 'created' | 'started' | 'fulfilled' | 'rejected';
 export interface PromiseState {
+  parentId: mongoose.Types.ObjectId;
   id: mongoose.Types.ObjectId;
   params?: Record<string, string|number>;
   name: string;
