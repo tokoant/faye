@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const STORE_PATH = 'SAGA_PROMISE';
 
 type PROMISE_STATE = 'created' | 'started' | 'fulfilled' | 'rejected';
-export interface PromiseState {
+export interface SagaPromiseState {
   parentId: mongoose.Types.ObjectId;
   id: mongoose.Types.ObjectId;
   params?: Record<string, string|number>;
@@ -24,10 +24,10 @@ export interface ActionType {
     error?: Error;
   };
 }
-const sagaPromiseReducers = (state:PromiseState[], action:ActionType) => {
+const sagaPromiseReducers = (state:SagaPromiseState[], action:ActionType) => {
 
   let currentPromise = undefined;
-  let notCurrentPromise:PromiseState[] = [];
+  let notCurrentPromise:SagaPromiseState[] = [];
 
   if (action.payload){
     const { id: promiseId } = action.payload;

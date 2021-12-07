@@ -7,10 +7,10 @@ import deploySaga from '../sagas/deploy';
 import streamResponse from '../stores/states/streamResponse';
 
 // Needed Features:
-// - in synchronize with redux [DONE]
+// - in synchronize with permanent redux [DONE]
 // - serializable tasks [DONE]
 // - can stream the output log [DONE]
-// - can be recovered after crash
+// - can be recovered after crash 
 
 export const runDeploySaga = (_req, res) => {
 
