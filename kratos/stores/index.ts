@@ -35,7 +35,35 @@ const recoverableState = () => {
     savedState = JSON.parse(stateFileValue.toString());
 
     // TODO: handle recovery here
-    
+    // 
+    // NEEDED: 
+    // - order of tasks 
+    // - type of the task (SSH and nonSSH)
+    // 
+    // HOW TO RECOVER:
+    // - list all tasks and groupBy parentId
+    // - executed task sequentially by it's type (SSH and nonSSH)
+    //    -? for SSH task:
+    //        -> redux state CREATED:
+    //            - rerun the promise action from params
+    //        -> redux state STARTED:
+    //            - GET result from ssh server by task id 
+    //                - if still running: reconnect the event listenner
+    //                - else update state by id
+    //        -> redux state FULFILLED: 
+    //            - skip execution
+    //        -> redux state REJECTED:
+    //            - skip execution
+    //    -? for nonSSH task:
+    //        -> redux state CREATED:
+    //            - rerun the promise action from params
+    //        -> redux state STARTED:
+    //            - rerun the promise action from params
+    //        -> redux state FULFILLED: 
+    //            - skip execution
+    //        -> redux state REJECTED:
+    //            - skip execution
+    //
 
   }catch(err){
     fs.writeFileSync(PERMANENT_STATE_PATH, JSON.stringify(savedState));

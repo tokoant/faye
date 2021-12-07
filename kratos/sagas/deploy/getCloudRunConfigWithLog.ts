@@ -18,7 +18,7 @@ const getCloudRunConfig = async ({ id, prevTask }: TaskParams) => {
 
   const shellScript = (await promiseFs.readFile(`${__dirname}/../../scripts/slow.sh`)).toString();
 
-  const taskId = new mongoose.Types.ObjectId();
+  const taskId = id;
 
   const SSEhandler = await getRunningScriptLiveLog({ taskId });
   SSEhandler.addEventListener('shell-log', (event)=>{
