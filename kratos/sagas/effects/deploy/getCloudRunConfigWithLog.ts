@@ -22,9 +22,9 @@ const getCloudRunConfig:KratosSagaEffect = async ({ parentId, id, prevTask }) =>
       target: '127.0.0.1', 
       script: shellScript,
   };
-  const logStream = runSshScriptWithLogStream(params);
-  console.log(logStream);
-  return { id, result: 'getCloudRunConfig result' };
+  const result = await runSshScriptWithLogStream(params);
+
+  return { id, result };
 }
 
 export default createKratosSagaEffect({ 

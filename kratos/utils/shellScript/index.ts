@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
-import { runShellScript, getRunningScriptLiveLog } from './sshConn';
-import sshLogEmitter from '../../local/sshLogEmitter';
+import { runShellScript, createRunningScriptLogStream } from './sshConn';
 
 interface RunSshScriptWithLogStreamParams {
   parentId: mongoose.Types.ObjectId | undefined;
@@ -9,7 +8,7 @@ interface RunSshScriptWithLogStreamParams {
   script: string,
 }
 
-export const runSshScriptWithLogStream = (params:RunSshScriptWithLogStreamParams) => {
+export const runSshScriptWithLogStream = async (params:RunSshScriptWithLogStreamParams) => {
     
   const { parentId } = params;
 
@@ -17,9 +16,7 @@ export const runSshScriptWithLogStream = (params:RunSshScriptWithLogStreamParams
   
   const sshId = new mongoose.Types.ObjectId();
 
-  getRunningScriptLiveLog({ sshId, parentId });
+  await createRunningScriptLogStream({ sshId, parentId });
   
-  runShellScript({ ...params, sshId });
-
-  return sshLogEmitter[parentId.toString()];
+  return runShellScript({ ...params, sshId });
 }

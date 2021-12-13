@@ -8,7 +8,7 @@ import { KratosActionCreatorParams } from '../sagas/types';
 import stores from '../stores';
 import mongoose from 'mongoose';
 // import streamResponse from '../stores/states/streamResponse';
-import sshLogEmitter from '../local/sshLogEmitter';
+import sshLogStreams from '../local/sshLogStreams';
 
 // Needed Features:
 // - in synchronize with permanent redux [DONE]
@@ -39,24 +39,10 @@ export const runDeploySaga = (_req:Request, res:Response) => {
 export const getRunDeploySagaLog = (req:Request, res:Response) => {
   const { deployId: currentDeployId } = req.params;
     
-  // const { sagaPromises }: { sagaPromises: SagaPromiseState[] } = stores.getState();
-  // const sagaPromise = sagaPromises.find(({ parentId }) => parentId.toString() === currentDeployId);
-
-  // if (sagaPromise && (!sagaPromise.useSsh)){
-  //     res.status(200);
-  //     res.json({info: 'not using any ssh'});
-  // }else{
-
-    sshLogEmitter[currentDeployId].on('data', (data) => {
-      res.write(`data:${JSON.stringify(data)}\n\n`);
-    });
-
-    // streamResponse[currentDeployId] = res;
-
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
-    });
-  // }
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+  sshLogStreams[currentDeployId].pipe(res)
 };

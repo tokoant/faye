@@ -1,8 +1,7 @@
 import axios from 'axios';
-import { EventEmitter } from 'events';
-import EventSource from 'eventsource';
 import mongoose from 'mongoose';
-import sshLogEmitter from '../../local/sshLogEmitter';
+import { Readable } from 'stream';
+import sshLogStreams from '../../local/sshLogStreams';
 import store from '../../stores';
 
 const baseURL = 'http://localhost:6788/script';
@@ -26,8 +25,8 @@ export const runShellScript = ({ sshId, taskId, target, script }: RunParamsType)
         script,
     };
 
-    store.dispatch({ type: 'SSH_RUNNER_CREATED', payload: { id: sshId, taskId, ...sshData }});
-    store.dispatch({ type: 'SAGA_PROMISE_ADD_SSH_RUNNER_ID', payload: { id: taskId, sshId }});
+    store.dispatch({ type: 'SSH_RUNNER_CREATED', payload: { id: sshId, taskId, ...sshData } });
+    store.dispatch({ type: 'SAGA_PROMISE_ADD_SSH_RUNNER_ID', payload: { id: taskId, sshId } });
 
     return axiosInstance({
         url: `/run/${sshId}`,
@@ -56,38 +55,30 @@ interface LogParamsType {
     sshId: mongoose.Types.ObjectId;
 }
 
-export const getRunningScriptLiveLog = ({ sshId, parentId }: LogParamsType) => {
+export const createRunningScriptLogStream = async ({ sshId, parentId }: LogParamsType) => {
     const resourceURL = new URL(`${baseURL}/log/${sshId}`).toString();
-    const SSE = new EventSource(resourceURL);
 
-    let localEmitter:EventEmitter = sshLogEmitter[parentId.toString()];
+    return axios.request<any>({
+        method: 'get',
+        url: resourceURL,
+        responseType: 'stream'
+    }).then((logStream: Readable) => {
+        sshLogStreams[parentId.toString()] = logStream
 
-    if (localEmitter === undefined){
-        localEmitter = new EventEmitter();
-        sshLogEmitter[parentId.toString()] = localEmitter;
-    } 
+        logStream.on('readable', () => {
+            const data = logStream.read();
+            store.dispatch({ type: 'SSH_RUNNER_RUNNING', payload: { id: sshId, log: data } });
+        })
+        logStream.on('error', ()=>{
 
-    SSE.addEventListener('shell-log', (event)=>{
-        const eventData = JSON.parse(event.data);
-        localEmitter.emit('data', eventData);
-        store.dispatch({ type: 'SSH_RUNNER_RUNNING', payload: { id: sshId, log: eventData }});
+            //TODO is it a correct way to handle error in redux?
+            store.dispatch({ type: 'SSH_RUNNER_ENDED', payload: { id: sshId } });
+        });
+        logStream.on('end', () => {
+            store.dispatch({ type: 'SSH_RUNNER_ENDED', payload: { id: sshId } });
+        })
+        return logStream;
     });
-
-    SSE.addEventListener('shell-exec-end', ()=>{
-        localEmitter.emit('end');
-        store.dispatch({ type: 'SSH_RUNNER_ENDED', payload: { id: sshId }});
-    });
-
-    SSE.onerror = (err:MessageEvent) => {
-        if (!err.data) {
-            console.log(`connection stream for ${sshId} have been closed`);
-        }else{
-            localEmitter.emit('error', err);
-        }
-        SSE.close();
-    };
-
-    return localEmitter;
 };
 
 interface DeleteParamsType {
