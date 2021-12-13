@@ -2,9 +2,13 @@ import mongoose from 'mongoose';
 
 const STORE_PATH = 'SAGA_PROMISE';
 
-type PROMISE_STATE = 'created' | 'started' | 'fulfilled' | 'rejected';
+type PROMISE_STATE = 'created' | 'started' | 'fulfilled' | 'rejected' | 'tobe-recovered';
+
 export interface SagaPromiseState {
   parentId: mongoose.Types.ObjectId;
+  orderNumber: number;
+  useSsh: boolean;
+  sshRunnerIds?: mongoose.Types.ObjectId[];
   id: mongoose.Types.ObjectId;
   params?: Record<string, string|number>;
   name: string;
@@ -15,6 +19,7 @@ export interface SagaPromiseState {
   createdAt?: string;
   endedAt?: string;
 }
+
 export interface ActionType {
   type: string;
   error: boolean;
@@ -22,9 +27,10 @@ export interface ActionType {
     id: mongoose.Types.ObjectId;
     result?: object;
     error?: Error;
+    sshId?: mongoose.Types.ObjectId;
   };
 }
-const sagaPromiseReducers = (state:SagaPromiseState[], action:ActionType) => {
+const sagaPromiseReducer = (state:SagaPromiseState[], action:ActionType) => {
 
   let currentPromise = undefined;
   let notCurrentPromise:SagaPromiseState[] = [];
@@ -48,6 +54,12 @@ const sagaPromiseReducers = (state:SagaPromiseState[], action:ActionType) => {
         state: 'started',
       };
       return [...notCurrentPromise, statedPromise];
+    case `${STORE_PATH}_TOBE_RECOVERED`:
+        const tobeRecoveredPromise = {
+          ...currentPromise,
+          state: 'tobe-recovered',
+        };
+        return [...notCurrentPromise, tobeRecoveredPromise];
     case `${STORE_PATH}_FULFILLED`:
       const fulfilledPromise = {
         ...currentPromise,
@@ -64,9 +76,23 @@ const sagaPromiseReducers = (state:SagaPromiseState[], action:ActionType) => {
         endedAt: (new Date).toISOString(),
       };
       return [...notCurrentPromise, rejectedPromise];
+    case `${STORE_PATH}_ADD_SSH_RUNNER_ID`:
+      const sshRunnerIds = currentPromise?.sshRunnerIds || [];
+      if (action.payload.sshId) {
+        sshRunnerIds.push(action.payload.sshId);
+        const sshRunnerIdAddedPromise = {
+          ...currentPromise,
+          sshRunnerIds,
+        };
+        return [...notCurrentPromise, sshRunnerIdAddedPromise];
+      }else {
+        return state;
+      }
+    case `${STORE_PATH}_REMOVE`: 
+      return [...notCurrentPromise];
     default:
       return state || [];
   }
 }
 
-export default sagaPromiseReducers;
+export default sagaPromiseReducer;

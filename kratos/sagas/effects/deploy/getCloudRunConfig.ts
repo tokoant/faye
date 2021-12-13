@@ -1,14 +1,9 @@
-import { sleepPromise } from "../../utils/promise";
-import mongoose from 'mongoose';
+import { KratosSagaEffect } from '../../types';
+import { createKratosSagaEffect } from '../../sagaEffect'; 
 
-interface TaskParams {
-  id: mongoose.Types.ObjectId;
-  prevTask: {
-    id: mongoose.Types.ObjectId;
-    result: string;
-  };
-}
-const getCloudRunConfig = async ({ id, prevTask }: TaskParams) => {
+import { sleepPromise } from "../../../utils/promise";
+
+const getCloudRunConfig: KratosSagaEffect = async ({ id, prevTask }) => {
   console.log('run getCloudRunConfig');
   console.log(`after prev task with id: ${prevTask.id} and result: ${prevTask.result}`);
 
@@ -21,4 +16,7 @@ const getCloudRunConfig = async ({ id, prevTask }: TaskParams) => {
   return { id, result: 'getCloudRunConfig result' };
 }
 
-export default getCloudRunConfig;
+export default createKratosSagaEffect({ 
+  effect: getCloudRunConfig,
+  partOf: 'deploySaga', 
+});

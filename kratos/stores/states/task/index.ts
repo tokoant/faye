@@ -1,8 +1,9 @@
+// DEPERECATED
 import { createStore, Reducer, applyMiddleware } from 'redux';
 import mongoose from 'mongoose';
 import fs from 'fs';
-import { getRunnningScript, getRunningScriptLiveLog } from '../../../sshConn';
-import streamResponse from '../streamResponse';
+import { getRunnningScript } from '../../../utils/shellScript/sshConn';
+// import streamResponse from '../streamResponse';
 import promise from 'redux-promise-middleware';
 
 const RUNNING_TASK_PATH  = './records/running-task.state';
@@ -64,31 +65,33 @@ const _isErrorNoTask = (error: ErrorType, taskId: string) => {
     taskStore.dispatch({ type: 'task/remove', payload: { taskId }});
   }
 }
+
+// deprecated
 const _recoverRunningTaskListeners = async (runningTasks:Task[]) => {
   for (let index = 0; index < runningTasks.length; index++) {
     const task = runningTasks[index];
     try {
       const { data }: { data: SSHConnectionTaskState } = await getRunnningScript({ taskId: task.taskId.toString() });
-      if (data && data.status === 'running'){
-        const SSEhandler = await getRunningScriptLiveLog({ taskId: task.taskId });
-        SSEhandler.addEventListener('shell-log', (event)=>{
-            if (streamResponse[task.taskId.toString()]) {
-                streamResponse[task.taskId.toString()].write('event:kratos-shell-log\n');
-                streamResponse[task.taskId.toString()].write(`data:${event.data}\n\n`);
-            }
+      // if (data && data.status === 'running'){
+      //   const SSEhandler = await getRunningScriptLiveLog({ taskId: task.taskId });
+      //   SSEhandler.addEventListener('shell-log', (event)=>{
+      //       if (streamResponse[task.taskId.toString()]) {
+      //           streamResponse[task.taskId.toString()].write('event:kratos-shell-log\n');
+      //           streamResponse[task.taskId.toString()].write(`data:${event.data}\n\n`);
+      //       }
     
-            // save current running state as task stream back the log 
-            taskStore.dispatch({ type: 'task/running', payload: { taskId: task.taskId, log: event.data }});
-        });
-        SSEhandler.addEventListener('shell-exec-end', ()=>{
-            if (streamResponse[task.taskId.toString()]){
-                streamResponse[task.taskId.toString()].end();
-            }
+      //       // save current running state as task stream back the log 
+      //       taskStore.dispatch({ type: 'task/running', payload: { taskId: task.taskId, log: event.data }});
+      //   });
+      //   SSEhandler.addEventListener('shell-exec-end', ()=>{
+      //       if (streamResponse[task.taskId.toString()]){
+      //           streamResponse[task.taskId.toString()].end();
+      //       }
     
-            // resolve current task as shell execution give a finished signal 
-            taskStore.dispatch({ type: 'task/resolved', payload: { taskId: task.taskId }});
-        });
-      }
+      //       // resolve current task as shell execution give a finished signal 
+      //       taskStore.dispatch({ type: 'task/resolved', payload: { taskId: task.taskId }});
+      //   });
+      // }
       if (data && data.status === 'ended'){
         taskStore.dispatch({ type: 'task/resolved-with-log', payload: { taskId: task.taskId }});
       }
@@ -100,7 +103,6 @@ const _recoverRunningTaskListeners = async (runningTasks:Task[]) => {
 
 interface StateType {
   tasks: Task[],
-  // promises: PromiseTask[],
 }
 const recoverableState = () => {
   let savedState:StateType = {tasks: []};
