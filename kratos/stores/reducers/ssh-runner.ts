@@ -55,7 +55,7 @@ const sshRunnerReducer = (state:SSHRunnerState[], action:ActionType) => {
           ...currentRunner,
           status: 'running',
         }
-        if (action.payload.log) currentRunningTask.logs.push(action.payload.log);
+        // if (action.payload.log) currentRunningTask.logs.push(action.payload.log);
         return [...notCurrentRunner, currentRunningTask];
       }
     case `${STORE_PATH}_ENDED`:

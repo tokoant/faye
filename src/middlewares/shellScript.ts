@@ -39,8 +39,7 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
 
       // write to task response socket if available
       if (taskResponseSockets[taskId]) {
-        taskResponseSockets[taskId].write('event:shell-log\n');
-        taskResponseSockets[taskId].write(`data:${logObjectString}\n\n`);
+        taskResponseSockets[taskId].write(logBuffer);
       }
 
       // update task status to "running"
@@ -54,8 +53,7 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
 
       logFileStream.write(logBuffer);
       if (taskResponseSockets[taskId]) {
-        taskResponseSockets[taskId].write('event:shell-log\n');
-        taskResponseSockets[taskId].write(`data:${logObjectString}\n\n`);
+        taskResponseSockets[taskId].write(logBuffer);
       }
       
       // update task status to "running"
@@ -66,8 +64,6 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
     socket.on('end', () => {
       logFileStream.end();
       if (taskResponseSockets[taskId]){
-        taskResponseSockets[taskId].write('event:shell-exec-end\n');
-        taskResponseSockets[taskId].write(`data:\n\n`);
         taskResponseSockets[taskId].end();
       }
 

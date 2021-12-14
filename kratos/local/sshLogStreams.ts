@@ -1,5 +1,5 @@
-import { Stream } from "stream";
+import { Readable } from "stream";
 
-const sshLogStreams:Record<string, Stream> = {};
+const sshLogStreams:Record<string, Readable> = {};
 
 export default sshLogStreams;

@@ -1,12 +1,8 @@
 import { KratosSagaEffect } from '../../types';
 import { createKratosSagaEffect } from '../../sagaEffect'; 
 
-// import mongoose from 'mongoose';
 import fs from 'fs';
 import { runSshScriptWithLogStream } from '../../../utils/shellScript';
-// import { runShellScript, getRunningScriptLiveLog } from '../../utils/shellScript/sshConn';
-// import { kratosLogHelper } from '../../utils/logHelper';
-// import streamResponse from '../../stores/states/streamResponse';
 
 const promiseFs = fs.promises;
 
@@ -22,9 +18,9 @@ const getCloudRunConfig:KratosSagaEffect = async ({ parentId, id, prevTask }) =>
       target: '127.0.0.1', 
       script: shellScript,
   };
-  const result = await runSshScriptWithLogStream(params);
+  await runSshScriptWithLogStream(params);
 
-  return { id, result };
+  return { id, result: params };
 }
 
 export default createKratosSagaEffect({ 

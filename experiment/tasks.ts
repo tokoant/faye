@@ -13,6 +13,7 @@
 
 import EventEmitter from "events"
 import { Stream } from "stream"
+import reduxStore from "../kratos/stores"
 
 
 export const runPromise = async(params)=>{
@@ -50,15 +51,22 @@ export const runStream = (params) => {
         if (params.amount > 10) {
             stream.emit('error', new Error("Amount more than 10"))
         } else {
-            stream.write('data', "Amount ok")
+            stream.write("Amount ok")
         }
     stream.end();
     return stream
 }
 
+export const runRedux = (params) => {
+
+    return reduxStore;
+}
 
 
 // Example on how to plug one into another
+const wrapReduxInPromise = async (params) => {
+
+}
 
 const wrapStreamInPromise = async(params)=>{
     const stream = runStream(params)

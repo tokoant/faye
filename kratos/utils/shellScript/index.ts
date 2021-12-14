@@ -18,5 +18,5 @@ export const runSshScriptWithLogStream = async (params:RunSshScriptWithLogStream
 
   await createRunningScriptLogStream({ sshId, parentId });
   
-  return runShellScript({ ...params, sshId });
+  return await runShellScript({ ...params, sshId });
 }

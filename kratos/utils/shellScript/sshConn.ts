@@ -1,3 +1,5 @@
+
+
 import axios from 'axios';
 import mongoose from 'mongoose';
 import { Readable } from 'stream';
@@ -58,20 +60,16 @@ interface LogParamsType {
 export const createRunningScriptLogStream = async ({ sshId, parentId }: LogParamsType) => {
     const resourceURL = new URL(`${baseURL}/log/${sshId}`).toString();
 
-    return axios.request<any>({
+    axios.request<Readable>({
         method: 'get',
         url: resourceURL,
         responseType: 'stream'
-    }).then((logStream: Readable) => {
-        sshLogStreams[parentId.toString()] = logStream
+    }).then(({ data: logStream }) => {
+        sshLogStreams[parentId.toString()] = logStream;
 
-        logStream.on('readable', () => {
-            const data = logStream.read();
-            store.dispatch({ type: 'SSH_RUNNER_RUNNING', payload: { id: sshId, log: data } });
-        })
+        store.dispatch({ type: 'SSH_RUNNER_RUNNING', payload: { id: sshId } });
+
         logStream.on('error', ()=>{
-
-            //TODO is it a correct way to handle error in redux?
             store.dispatch({ type: 'SSH_RUNNER_ENDED', payload: { id: sshId } });
         });
         logStream.on('end', () => {
