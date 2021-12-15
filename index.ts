@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { runShellScript, streamLog } from './src/middlewares/shellScript';
-import { prepareTask, getAllRunningTask, getTaskById, deleteTaskById } from './src/middlewares/task';
+import { prepareTask, getAllRunningTask, getTaskById, deleteTaskById, killTaskById } from './src/middlewares/task';
 import { responseWithPayload, handleError } from './src/middlewares/generic';
 
 dotenv.config();
@@ -44,10 +44,11 @@ const initFaye = async () => {
     streamLog,
   );
   
-  app.delete('/script/kill/:taskId', (_req, res)=>{
-
-    res.json({ok: 'kill ok'});
-  });
+  app.delete('/script/kill/:taskId',
+    killTaskById,
+    responseWithPayload,
+    handleError
+  );
 
   app.listen(port, () => {
     console.log(`Faye listening at http://localhost:${port}`);

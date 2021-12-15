@@ -1,5 +1,5 @@
 node_modules
-records/task-logs
+records/task-logs/*
 records/running-task.state
 records/permanent.state
 .env

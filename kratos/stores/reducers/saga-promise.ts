@@ -23,7 +23,7 @@ export interface SagaPromiseState {
 export interface ActionType {
   type: string;
   error: boolean;
-  payload: {
+  payload?: {
     id: mongoose.Types.ObjectId;
     result?: object;
     error?: Error;
@@ -64,7 +64,7 @@ const sagaPromiseReducer = (state:SagaPromiseState[], action:ActionType) => {
       const fulfilledPromise = {
         ...currentPromise,
         state: 'fulfilled',
-        result: action.payload.result,
+        result: action.payload?.result,
         endedAt: (new Date).toISOString(),
       };
       return [...notCurrentPromise, fulfilledPromise];
@@ -72,14 +72,14 @@ const sagaPromiseReducer = (state:SagaPromiseState[], action:ActionType) => {
       const rejectedPromise = {
         ...currentPromise,
         state: 'rejected',
-        error: action.payload.error,
+        error: action.payload?.error,
         endedAt: (new Date).toISOString(),
       };
       return [...notCurrentPromise, rejectedPromise];
     case `${STORE_PATH}_ADD_SSH_RUNNER_ID`:
       const sshRunnerIds = currentPromise?.sshRunnerIds || [];
-      if (action.payload.sshId) {
-        sshRunnerIds.push(action.payload.sshId);
+      if (action.payload?.sshId) {
+        sshRunnerIds.push(action.payload?.sshId);
         const sshRunnerIdAddedPromise = {
           ...currentPromise,
           sshRunnerIds,
@@ -90,6 +90,8 @@ const sagaPromiseReducer = (state:SagaPromiseState[], action:ActionType) => {
       }
     case `${STORE_PATH}_REMOVE`: 
       return [...notCurrentPromise];
+    case `${STORE_PATH}_RESET`: 
+      return [];
     default:
       return state || [];
   }

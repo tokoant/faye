@@ -2,11 +2,20 @@ import { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import SSH2Promise from 'ssh2-promise';
 import Tasks from '../state/tasks';
+import taskExpressResponse from '../state/expressResponses';
 
-const taskResponseSockets:{ [key: string]: Response } = {};
+const _findAndUpdateTaskById = (taskId:string, payload:Record<string, any>) => {
+  const taskIdIndex = Tasks.findIndex(({id}) => id === taskId);
+  if (taskIdIndex === -1) {
+    throw new Error('task not found');
+  }else{
+    const currentTask = Tasks[taskIdIndex];
+    Tasks[taskIdIndex] = { ...currentTask, ...payload };
+  }
+}
 
 export const runShellScript = async ( req:Request, res:Response, next:NextFunction ) => {
-  const { taskId} = req.params
+  const { taskId } = req.params
   const { script, target } = req.body;
   const { logPath } = res.locals.payload;
 
@@ -17,16 +26,16 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
   }
   
   const sshClient = new SSH2Promise(sshconfig);
-
+  
   try {
     await sshClient.connect();
+    _findAndUpdateTaskById(taskId, { sshClient });
   }catch(err){
     console.log(err);
     next(err);
   }
 
-  try {
-
+  try {    
     const socket = await sshClient.spawn(script);
     const logFileStream = fs.createWriteStream(logPath);
 
@@ -38,13 +47,12 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
       logFileStream.write(logBuffer);
 
       // write to task response socket if available
-      if (taskResponseSockets[taskId]) {
-        taskResponseSockets[taskId].write(logBuffer);
+      if (taskExpressResponse[taskId]) {
+        taskExpressResponse[taskId].write(logBuffer);
       }
 
       // update task status to "running"
-      const taskIdIndex = Tasks.findIndex(({id}) => id === taskId);
-      if (taskIdIndex !== -1) Tasks[taskIdIndex].status = 'running';
+      _findAndUpdateTaskById(taskId, { status: 'running' });
       console.log(`running task with id ${taskId}`);
     });
     socket.stderr.on('data', (data:Buffer)=>{
@@ -52,24 +60,22 @@ export const runShellScript = async ( req:Request, res:Response, next:NextFuncti
       const logBuffer = Buffer.from(`${logObjectString}`, 'utf-8');
 
       logFileStream.write(logBuffer);
-      if (taskResponseSockets[taskId]) {
-        taskResponseSockets[taskId].write(logBuffer);
+      if (taskExpressResponse[taskId]) {
+        taskExpressResponse[taskId].write(logBuffer);
       }
       
       // update task status to "running"
-      const taskIdIndex = Tasks.findIndex(({id}) => id === taskId);
-      if (taskIdIndex !== -1) Tasks[taskIdIndex].status = 'running';
+      _findAndUpdateTaskById(taskId, { status: 'running' });
       console.log(`running task with id ${taskId}`);
     });
     socket.on('end', () => {
       logFileStream.end();
-      if (taskResponseSockets[taskId]){
-        taskResponseSockets[taskId].end();
+      if (taskExpressResponse[taskId]){
+        taskExpressResponse[taskId].end();
       }
 
       // update task status to "ended"
-      const taskIdIndex = Tasks.findIndex(({id}) => id === taskId);
-      if (taskIdIndex !== -1) Tasks[taskIdIndex].status = 'ended';
+      _findAndUpdateTaskById(taskId, { status: 'ended' });
       console.log(`finish task with id ${taskId}`);
     });
   }catch(err){
@@ -84,7 +90,7 @@ export const streamLog = async ( req:Request, res:Response, _next:NextFunction )
 
   const { taskId } = req.params;
   
-  taskResponseSockets[taskId] = res;
+  taskExpressResponse[taskId] = res;
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',

@@ -1,6 +1,6 @@
 import express from 'express';
 import { runDeploySaga, getRunDeploySagaLog } from './middlewares/promise-saga';
-import { getStoreState } from './middlewares/general';
+import { getStoreState, resetStoreState } from './middlewares/general';
 
 const bodyParser = require('body-parser');
 const app = express();
@@ -14,6 +14,7 @@ const initFaye = async () => {
     app.get('/run-deploy/log/:deployId', getRunDeploySagaLog);
 
     app.get('/get-store-state', getStoreState);
+    app.put('/reset-store-state', resetStoreState);
     app.delete('/kratos/crash', () => {
         process.exit();
     });

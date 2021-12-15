@@ -16,7 +16,7 @@ export const runSshScriptWithLogStream = async (params:RunSshScriptWithLogStream
   
   const sshId = new mongoose.Types.ObjectId();
 
-  await createRunningScriptLogStream({ sshId, parentId });
-  
-  return await runShellScript({ ...params, sshId });
+  createRunningScriptLogStream({ sshId, parentId });
+
+  return await runShellScript({ ...params, sshId });;
 }

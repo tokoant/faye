@@ -98,7 +98,6 @@ const _runPromiseActionsRecovery = (params:RunPromiseActionsRecoveryParams) => {
   for (let index = 0; index < actions.length; index++) {
     const action = actions[index];
     actionPromises.push(_promiseActionRecover(dispatch, action));
-    console.log(actionPromises, 'a')
   }
 
   function* runRecoveryGenerator() {

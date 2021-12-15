@@ -7,6 +7,7 @@ import createSagaMiddleware from 'redux-saga';
 import fs from 'fs';
 import { groupBy, orderBy, uniq } from 'lodash';
 import { sleepPromise } from '../utils/promise';
+import { killSshConnection } from '../utils/shellScript/sshConn';
 
 // reducers
 import sshRunnerReducer, { SSHRunnerState } from './reducers/ssh-runner';
@@ -30,10 +31,15 @@ const _recoverKratosTask = async (taskStateFromDrive: StateType) => {
   // CLEAN UP
   // get all ssh-runner with status === 'running'
   const runningSshRunners = sshRunners.filter(({ status }) => status === 'running');
-  // TODO: send kill signal to faye (sshConnServer)
   // remove old ssh-runner & remark it saga-promise state 'to-be-recovered'
   for (let index = 0; index < runningSshRunners.length; index++) {
     const runningSshRunner:SSHRunnerState = runningSshRunners[index];
+    try{
+      // send kill signal to faye (sshConnServer)
+      await killSshConnection({ taskId: runningSshRunner.taskId });
+    }catch(err){
+      console.log(err);
+    }
     reduxStore.dispatch({ type: 'SSH_RUNNER_REMOVE', payload: { id: runningSshRunner.id } });
     reduxStore.dispatch({ type: 'SAGA_PROMISE_TOBE_RECOVERED', payload: { id: runningSshRunner.taskId }})
   }

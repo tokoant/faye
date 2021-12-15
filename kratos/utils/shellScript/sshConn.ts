@@ -31,7 +31,7 @@ export const runShellScript = ({ sshId, taskId, target, script }: RunParamsType)
     store.dispatch({ type: 'SAGA_PROMISE_ADD_SSH_RUNNER_ID', payload: { id: taskId, sshId } });
 
     return axiosInstance({
-        url: `/run/${sshId}`,
+        url: `${baseURL}/run/${sshId}`,
         method: 'post',
         data: sshData,
     });
@@ -39,7 +39,7 @@ export const runShellScript = ({ sshId, taskId, target, script }: RunParamsType)
 
 export const listRunningScript = async () => {
     return await axiosInstance({
-        url: '/list',
+        url: `${baseURL}/list`,
     });
 };
 
@@ -48,7 +48,7 @@ interface GetParamsType {
 }
 export const getRunnningScript = ({ taskId }: GetParamsType) => {
     return axiosInstance({
-        url: `/get/${taskId}`,
+        url: `${baseURL}/get/${taskId}`,
     });
 };
 
@@ -60,7 +60,7 @@ interface LogParamsType {
 export const createRunningScriptLogStream = async ({ sshId, parentId }: LogParamsType) => {
     const resourceURL = new URL(`${baseURL}/log/${sshId}`).toString();
 
-    axios.request<Readable>({
+    return axios.request<Readable>({
         method: 'get',
         url: resourceURL,
         responseType: 'stream'
@@ -68,10 +68,9 @@ export const createRunningScriptLogStream = async ({ sshId, parentId }: LogParam
         sshLogStreams[parentId.toString()] = logStream;
 
         store.dispatch({ type: 'SSH_RUNNER_RUNNING', payload: { id: sshId } });
-
-        logStream.on('error', ()=>{
-            store.dispatch({ type: 'SSH_RUNNER_ENDED', payload: { id: sshId } });
-        });
+    
+        logStream.on('data', () => {});
+    
         logStream.on('end', () => {
             store.dispatch({ type: 'SSH_RUNNER_ENDED', payload: { id: sshId } });
         })
@@ -85,6 +84,16 @@ interface DeleteParamsType {
 export const deleteDoneScript = async ({ taskId }: DeleteParamsType) => {
     return await axiosInstance({
         url: `/log/${taskId}`,
+        method: 'delete',
+    });
+};
+
+interface KillParamsType {
+    taskId: mongoose.Types.ObjectId;
+}
+export const killSshConnection = async ({ taskId }: KillParamsType) => {
+    return await axiosInstance({
+        url: `${baseURL}/kill/${taskId}`,
         method: 'delete',
     });
 };

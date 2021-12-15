@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { buildValidationErrorParams } from '../utils/error';
 import Tasks, { TaskState } from '../state/tasks';
-// import mongoose from 'mongoose';
+import taskExpressResponse from '../state/expressResponses';
 import fs from 'fs';
 
 const promiseFs = fs.promises;
@@ -89,6 +89,40 @@ export const deleteTaskById = async (  req:Request, res:Response, next:NextFunct
   next();
 }
 
-// kill implementation
-// - ssh client disconnect
-// - clean up logFileStream
+export const killTaskById = async ( req:Request, res:Response, next:NextFunction ) => {
+
+  // validate required params
+  const taskId = req.params.taskId;
+
+  if (!taskId) next(buildValidationErrorParams('need to provide taskId'));
+
+  try {
+
+    // find task to be delete, throw error if no task found
+    const taskIndex:number = Tasks.findIndex((n:TaskState) => n.id.toString() === taskId);
+
+    if (taskIndex === -1) throw new Error('no task with that id in task queue');
+    
+    // ending express response
+    const currTaskExpressResponse = taskExpressResponse[taskId];
+
+    if (currTaskExpressResponse) {
+      currTaskExpressResponse.end();
+      delete taskExpressResponse[taskId];
+    }
+
+    // ssh client disconnect
+    const currTaskSshClient = Tasks[taskIndex].sshClient;
+    if (currTaskSshClient) currTaskSshClient.close();
+
+    // delete log file
+    const logName = `run-shell-script-${taskId}.log`;
+    await promiseFs.unlink(`${TASK_LOG_PATH}/${logName}`);
+
+  }catch(err){
+    next(err)
+  }
+
+  res.locals.payload = { result: 'successfully kill the task' };
+  next();
+}

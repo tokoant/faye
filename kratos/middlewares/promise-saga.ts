@@ -14,11 +14,11 @@ import sshLogStreams from '../local/sshLogStreams';
 // - can stream the output log [DONE]
 // - can be recovered after crash [DONE]
 
-export const runDeploySaga = (_req:Request, res:Response) => {
+export const runDeploySaga = async (_req:Request, res:Response) => {
 
   const deployId = new mongoose.Types.ObjectId();
 
-  stores.dispatch<KratosActionCreatorParams>({ 
+  await stores.dispatch<KratosActionCreatorParams>({ 
     type: 'KratosAction', 
     payload: 'PromiseActionCreator',
     actions: [

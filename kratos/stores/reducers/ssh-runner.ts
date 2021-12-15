@@ -23,7 +23,7 @@ export interface SSHRunnerState {
 
 export interface ActionType {
   type: string;
-  payload: {
+  payload?: {
     id: mongoose.Types.ObjectId;
     log?: Log;
   };
@@ -69,6 +69,8 @@ const sshRunnerReducer = (state:SSHRunnerState[], action:ActionType) => {
       return [...notCurrentRunner, resolvedRunner];
     case `${STORE_PATH}_REMOVE`: 
       return [...notCurrentRunner];
+    case `${STORE_PATH}_RESET`: 
+      return [];
     default:
       return state || [];
   }
