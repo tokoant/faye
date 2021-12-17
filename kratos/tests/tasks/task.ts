@@ -1,10 +1,77 @@
 import { Request, Response } from "express";
 import { KratosTaskPayload } from '../interfaces'
 import getRunWithPayload from '../getRunWithPayload'
-import job from './utils/job';
+import job, { runTest } from './utils/job';
 import job2 from './utils/job2';
 import  axios from 'axios'
 import deploymentEffects from './effects/deploy';
+
+const runDeploy = ()=>{
+  const testResult= runTest()
+  const dockerImageId = getDockerImage()
+  if (testResult.lintOk){
+   deployToCloudRun({ dockerImageId})
+  }
+}
+
+const getDockerImage = async (ctx) => {
+  ctx.dockerImageId='shtoenshoetn'
+  return
+}
+
+const deployToCloudRun =async(ctx)=>{
+  runShellScript({ ctx.dockerImageId})
+}
+
+const runDeploy = (ctx) => {
+  const jobs = [runTest, getDockerImage, deployToCloudRun]
+  ctx.runJobs(jobs)
+}
+
+
+/* 
+Contract:
+
+Kratos can:
+  For any job(promise)
+    Provides UI to start/stop
+    View logs
+    View execution results
+    Stream logs
+    Scheduled run 
+  For jobs using limited resources
+    Provides queues to share resources efficiently
+  For long running shell script
+    will keep it running in case of kratos restart
+  For tasks composed of multiple jobs:
+    provides framework:
+      easy to use, read, understand
+      enforcing good code practices in jobs code:
+        job isolation
+        injection
+        no spaghetti code
+
+
+Kratos requires:
+  Job contract:
+    A promise factory
+    Can be invoked multiple times w/o harm (no ADD to DB, only UPDATE)
+    Will be injected with kratos helpers:
+      log helper:
+        stream
+        add log line
+      taskId
+      parentId
+      ...
+  Task contract:
+    ???
+    ?express like
+    ?is tree like structure enough to 
+    ?how to force non-usage of common context
+    ?how to pass info from one job to another in task code
+    ???
+
+*/
 
 export const runTaskNoParams = async (_req:Request, res:Response) => {
   const jobs = ['job', 'jobWithLog'];
@@ -26,9 +93,13 @@ export const runTasksWithDependentParams= async (_req: Request, res: Response) =
   const jobs = [
     async (payload: KratosTaskPayload)=>{
       const result = await job({ ms: 5 })(payload)
+      if (!result) {
+        throw new Error('noeneon')
+      }
       payload.ctx.jobOneResult = result
     },
     async (payload: KratosTaskPayload) => {
+      if (payload.ctx.jobOneResult) {return}
       const result = await job({ ms: 5 })(payload)
       payload.ctx.jobOneResultButAnother = result
     },
@@ -37,6 +108,32 @@ export const runTasksWithDependentParams= async (_req: Request, res: Response) =
    ];
 
   const result = await magicSequence(jobs);
+
+  res.json(result);
+}
+
+export const runDeploy = async (_req: Request, res: Response) => {
+  const jobs = [
+    async (payload: KratosTaskPayload) => {
+      const result = await getDockerManifest({ ms: 5 })(payload)
+      payload.ctx.dockerManifest = result
+    },
+    async (payload: KratosTaskPayload) => {
+      if (payload.ctx.dockerManifest) { return }
+      const buildResult = await build({ ms: 5, dockerManifest })(payload) //15min
+      payload.ctx.buildResult = result
+    },
+    async (payload: KratosTaskPayload) => {
+      if (payload.ctx.dockerManifest) { return }
+      if (payload.ctx.buildResult){
+        payload.ctx.dockerManifest= await getDockerManifest(payload.ctx.buildResult)(payload)
+      } else {
+        throw new Error('could not build, cound not find')
+      }
+    }
+  ];
+
+  const result = await magic(jobs);
 
   res.json(result);
 }

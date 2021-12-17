@@ -1,5 +1,5 @@
 
-import { KratosTaskPayload} from '../../interfaces'
+import { KratosTaskPayload } from '../../interfaces'
 
 interface RunTestParams {
   ms: number,
@@ -11,6 +11,7 @@ export const runTest = (params: RunTestParams) => async (payload: KratosTaskPayl
     setTimeout(() => resolve(params), params.ms);
   });
   return result
+  //{test:{time: 12,lintOk:true}}
 };
 
 export default runTest;
