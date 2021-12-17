@@ -67,6 +67,11 @@ Kratos requires:
       parentId
       ...
   Task contract:
+    no side effects
+    no random
+    no http calls
+    no await
+
     ???
     ?express like
     ?is tree like structure enough to 
@@ -135,22 +140,29 @@ export const runDeploy = async (_req: Request, res: Response) => {
   res.json(result);
 }
 
+
+const taskMagic = (task)=>{
+  // task.toString().find(!'await payload')
+}
+
 export const runDeployInSingleStep = async (_req: Request, res: Response) => {
-  const jobs = [
-    async (payload: KratosTaskPayload) => {
+
+  const task = async (payload: KratosTaskPayload) => {
+    const { magic } =payload
       let dockerManifest
       try {
-         dockerManifest = await getDockerManifest({ ms: 5 })(payload)
+        dockerManifest = await magic(getDockerManifest({ ms: 5 }))
       } catch {
-        const buildResult = await runShellScript({ script: 'build.sh', target: '' })(payload);
-        dockerManifest = await getDockerManifest(payload.ctx.buildResult)(payload);
+        const buildResult = await magic(runShellScript({ script: 'build.sh', target: '' }));
+        // kratos restart
+        dockerManifest = await magic(getDockerManifest(buildResult));
         return
       }
-      await deployToCloudRun(payload.ctx.dockerManifest)
-    }
-  ];
+      const random = await magic(getRandom())
+      await magic(deployToCloudRun(dockerManifest, random)
+    };
 
-  const result = await magic(jobs);
+  const result = await magic(task);
 
   res.json(result);
 }
