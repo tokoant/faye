@@ -164,6 +164,7 @@ export const runKratosTask:RunKratosTask = async (params) => {
     console.error(error);
   } finally {
     currentTask.status = 'finished';
+    console.log(`Finished Task ${kratosTask.taskName} : ${STR_TASK_ID}`);
   }
 
   _storeTaskInformationByTaskId(taskId.toString(), currentTask);
@@ -204,6 +205,4 @@ export const recoverKratosTaskOnStart = async () => {
     }
     runKratosTask(kratosTask);
   }
-
-  // console.log(unfinishedTasks);
 }
