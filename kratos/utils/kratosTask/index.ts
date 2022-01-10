@@ -46,21 +46,27 @@ export const PERMANENT_EFFECT_PATH  = `./records/permanent.effect`;
 // }
 
 export const _storeEffectInformation = (taskId:string, effectInfo: EffectInfo) => {
-  tasksStates[taskId].effects.push(effectInfo);
-  fs.writeFileSync(PERMANENT_EFFECT_PATH, JSON.stringify(tasksStates));
-  // console.dir(tasksStates, { depth: null });
+  if (tasksStates[taskId]) {
+    tasksStates[taskId].effects.push(effectInfo);
+    fs.writeFileSync(PERMANENT_EFFECT_PATH, JSON.stringify(tasksStates));
+    console.dir(tasksStates, { depth: null });
+  }
 }
 
 export const _storeEffectInformationByPointer = (taskId:string, pointer:number, effectInfo: EffectInfo) => {
-  tasksStates[taskId].effects[pointer] = effectInfo;
-  fs.writeFileSync(PERMANENT_EFFECT_PATH, JSON.stringify(tasksStates));
-  // console.dir(tasksStates, { depth: null });
+  if (tasksStates[taskId]) {
+    tasksStates[taskId].effects[pointer] = effectInfo;
+    fs.writeFileSync(PERMANENT_EFFECT_PATH, JSON.stringify(tasksStates));
+    // console.dir(tasksStates, { depth: null });
+  }
 }
 
 export const _storeTaskInformationByTaskId = (taskId: string, taskInfo: TaskStateObject) => {
-  tasksStates[taskId] = taskInfo;
-  fs.writeFileSync(PERMANENT_EFFECT_PATH, JSON.stringify(tasksStates));
-  // console.dir(tasksStates, { depth: null });
+  if (tasksStates[taskId]) {
+    tasksStates[taskId] = taskInfo;
+    fs.writeFileSync(PERMANENT_EFFECT_PATH, JSON.stringify(tasksStates));
+    // console.dir(tasksStates, { depth: null });
+  }
 }
 
 export const _contextifyRunSideEffect = (taskId: mongoose.Types.ObjectId):RunKratosTaskEffect => {
@@ -70,7 +76,7 @@ export const _contextifyRunSideEffect = (taskId: mongoose.Types.ObjectId):RunKra
   // initialize pointers;
   stepPointers[STR_TASK_ID] = 0;
 
-  tasksStates[STR_TASK_ID].status = 'running'; 
+  if (tasksStates[STR_TASK_ID]) tasksStates[STR_TASK_ID].status = 'running'; 
 
   _storeTaskInformationByTaskId(STR_TASK_ID, tasksStates[STR_TASK_ID]);
 
@@ -85,7 +91,7 @@ export const _contextifyRunSideEffect = (taskId: mongoose.Types.ObjectId):RunKra
     let result;
 
     // this only happen when in recovery mode
-    if (tasksStates[STR_TASK_ID].effects.length > stepPointers[STR_TASK_ID]){
+    if (tasksStates[STR_TASK_ID] && tasksStates[STR_TASK_ID].effects.length > stepPointers[STR_TASK_ID]){
       const effectInfo = tasksStates[STR_TASK_ID].effects[stepPointers[STR_TASK_ID]];
       console.log(`RECOVERY ${effectInfo.name}`);
 
