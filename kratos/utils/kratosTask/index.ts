@@ -32,24 +32,11 @@ const stepPointers:StepPointers = {};
 
 export const PERMANENT_EFFECT_PATH  = `./records/permanent.effect`;
 
-// // return undefined if not found
-// type FindEffectFromStoreReturn = EffectInfo | undefined;
-// export const _findEffectFromStore = (effectName:string, params:Record<string, unknown>):FindEffectFromStoreReturn => {
-//   // TODO: need to also check taskID 
-//   return tasksStates.find(n => (n.name === effectName) && deepEqual(n.params, params));
-// }
-
-// type FindIndexEffectFromStoreReturn = number;
-// export const _findIndexEffectFromStore = (effectName:string, params:Record<string, unknown>):FindIndexEffectFromStoreReturn => {
-//   // TODO: need to also check taskID 
-//   return tasksStates.findIndex(n => (n.name === effectName) && deepEqual(n.params, params));
-// }
-
 export const _storeEffectInformation = (taskId:string, effectInfo: EffectInfo) => {
   if (tasksStates[taskId]) {
     tasksStates[taskId].effects.push(effectInfo);
     fs.writeFileSync(PERMANENT_EFFECT_PATH, JSON.stringify(tasksStates));
-    console.dir(tasksStates, { depth: null });
+    // console.dir(tasksStates, { depth: null });
   }
 }
 
@@ -96,11 +83,12 @@ export const _contextifyRunSideEffect = (taskId: mongoose.Types.ObjectId):RunKra
       console.log(`RECOVERY ${effectInfo.name}`);
 
       if (effectInfo.params && effectInfo.result){
-        console.log(`SKIPPING ${effectInfo.name}, because already have result saved`)
+        console.log(`SKIPPING ${effectInfo.name}, because already have result saved\n`)
         result = effectInfo.result;
       }else{
         result = await effect(params);
         effectInfo.result = result;
+        console.log(`FINISHED EFFECT ${effect.name}, and storing the result\n`);
       }
 
       _storeEffectInformationByPointer(STR_TASK_ID, stepPointers[STR_TASK_ID], effectInfo);
@@ -118,6 +106,7 @@ export const _contextifyRunSideEffect = (taskId: mongoose.Types.ObjectId):RunKra
         result = await effect(params);
   
         effectInfo.result = result;
+        console.log(`FINISHED EFFECT ${effect.name}, and storing the result\n`);
         _storeEffectInformationByPointer(STR_TASK_ID, stepPointers[STR_TASK_ID], effectInfo);
         stepPointers[STR_TASK_ID] = stepPointers[STR_TASK_ID] + 1;
   
@@ -139,13 +128,23 @@ export const runKratosTask:RunKratosTask = async (params) => {
   // create a context object
   const context:RunKratosTaskContext = {};
 
+  // find branch recoverable task id
+  let recoverableBranchTaskId;
+  if (parentId){
+    for (const key in tasksStates) {
+      if (tasksStates[key].status === 'running' && tasksStates[key].parentId === parentId && tasksStates[key].taskName === kratosTask.taskName){
+        recoverableBranchTaskId = key;
+      }
+    }
+  }
+
   // create task Id
-  const taskId = new mongoose.Types.ObjectId(recoverableTaskId);
+  const taskId = new mongoose.Types.ObjectId(recoverableTaskId || recoverableBranchTaskId);
   const STR_TASK_ID = taskId.toString();
   context.taskId = taskId;
 
   // initialize task spesific states if not in recovery mode
-  if(!recoverableTaskId){
+  if(!(recoverableTaskId || recoverableBranchTaskId)){
     tasksStates[STR_TASK_ID] = {
       status: 'started',
       isError: false,
@@ -155,14 +154,19 @@ export const runKratosTask:RunKratosTask = async (params) => {
   }
 
   // assign parent id if any
-  if (parentId) tasksStates[STR_TASK_ID].parentId = parentId;
+  if (parentId) {
+    tasksStates[STR_TASK_ID].parentId = parentId;
+  }
 
   // run task with context:
+  // console.log(taskId, 'CONGEX')
+  // console.dir(tasksStates);
   const instructionParams = { context, runSideEffect: _contextifyRunSideEffect(taskId) };
 
   const currentTask = tasksStates[taskId.toString()];
 
   try {
+    console.log(`\n\nRUNNING ${kratosTask.taskName} with taskID: ${taskId}\n`);
     await kratosTask.instruction(instructionParams);
   } catch (error) {
     currentTask.isError = true;
@@ -170,7 +174,7 @@ export const runKratosTask:RunKratosTask = async (params) => {
     console.error(error);
   } finally {
     currentTask.status = 'finished';
-    console.log(`Finished Task ${kratosTask.taskName} : ${STR_TASK_ID}`);
+    console.log(`Finished Task ${kratosTask.taskName} : ${STR_TASK_ID}\n`);
   }
 
   _storeTaskInformationByTaskId(taskId.toString(), currentTask);

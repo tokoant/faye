@@ -9,8 +9,6 @@ const deployInstruction:TaskInstruction = async (params) => {
   const { runSideEffect, context } = params;
 
   try{
-    console.log(context, 'CONTEXT\n\n\n');
-
     const params1 = { someParams: 1 };
     const result1 = await runSideEffect(checkCloudRunManifest, params1);
     

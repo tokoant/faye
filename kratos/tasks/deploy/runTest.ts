@@ -3,7 +3,7 @@ import { runKratosTask } from '../../utils/kratosTask';
 import testTask from '../test';
 
 const runTest:KratosTaskEffect = async (params) => {
-  console.log('RUN runTest');
+  console.log('RUN EFFECT runTest');
   
   const { parentId } = params;
   
